@@ -1,0 +1,4 @@
+# need to link to fcntl
+
+O_RDONLY: value 0
+O_WRONLY: value 1

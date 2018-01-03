@@ -6,7 +6,7 @@ from rpython.jit.codewriter.policy import JitPolicy
 from hoe.engine import Engine
 
 def main(argv):
-    engine = Engine()
+    engine = Engine(argv[0])
     return engine.run_script(argv[1])
 
 def target(driver, args):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from hoe.grammar import parse_source
-from hoe.builtin import is_builtin, builtin
+from hoe.builtin import is_builtin, builtin, builtin_bool
 from hoe.runtime import (Env, Type, Int, Float,
                          Str, Bool, Null, Array,
                          Object,
@@ -13,6 +13,17 @@ def eval(engine, source_code):
 def eval_source_code(engine, source_code):
     ast = parse_source(source_code)
     return eval_statements(engine, ast.children)
+
+def eval_module(engine, source_code):
+    ast = parse_source(source_code)
+    env = Env()
+    engine.stack.append(env)
+    for statement in ast.children:
+        eval_statement(engine, statement)
+    engine.stack.pop()
+    del env.namespace['^']
+    return env
+
 
 def eval_statements(engine, statements):
     for statement in statements:
@@ -46,8 +57,8 @@ def eval_statement_without_identifier(engine, statement):
     return val
 
 def eval_command(engine, statement):
-    if statement.symbol == 'quote':
-        return eval_quote(engine, statement)
+    if statement.symbol == 'value':
+        return eval_value(engine, statement)
     elif statement.symbol == 'eval':
         return eval_eval(engine, statement)
     elif statement.symbol == 'begin':
@@ -56,42 +67,55 @@ def eval_command(engine, statement):
         return eval_cond(engine, statement)
     elif statement.symbol == 'iter':
         return eval_iter(engine, statement)
-    elif statement.symbol == 'proc':
-        return eval_proc(engine, statement)
+    elif statement.symbol == 'def':
+        return eval_def(engine, statement)
     else:
         raise Exception('unknown command %s' % statement)
 
 def eval_eval(engine, statement):
-    proc_STRING = statement.children[0]
-    proc = extract_STRING(proc_STRING)
+    def_STRING = statement.children[0]
+    func_name = extract_STRING(def_STRING)
     payload = eval_expression(engine, statement.children[1]) \
             if len(statement.children) == 2 else null
-    if is_builtin(proc):
-        return builtin(proc, payload)
+    if func_name == 'eval' and isinstance(payload, Str):
+        engine.stack.append(Env())
+        return eval_source_code(engine, payload.str_val)
+    if is_builtin(func_name):
+        return builtin(engine, func_name, payload)
     statements = None
     for env in reversed(engine.stack):
-        if env.has_proc(proc):
-            statements = env.get_proc(proc)
+        if env.has_def(func_name):
+            statements = env.get_def(func_name)
+            break
     if not statements:
-        raise Exception('unknown proc: %s' % proc)
+        raise Exception('unknown def: %s' % func_name)
     env = Env()
     env.set('$', payload)
     engine.stack.append(env)
     return eval_statements(engine, statements)
 
-def eval_proc(engine, statement):
-    proc_name = extract_STRING(statement.children[0])
-    engine.current_stack().define_proc(proc_name, statement.children[1:])
+def eval_def(engine, statement):
+    def_name = extract_STRING(statement.children[0])
+    engine.current_stack().define_def(def_name, statement.children[1:])
     return null
 
 def eval_iter(engine, statement):
     iter_object = eval_expression(engine, statement.children[0])
-    if isinstance(iter_object, Int):
+    if isinstance(iter_object, Bool):
+        return eval_iter_bool(engine, iter_object, statement.children[1:])
+    elif isinstance(iter_object, Int):
         return eval_iter_n_times(engine, iter_object, statement.children[1:])
     elif isinstance(iter_object, Array):
         return eval_iter_array(engine, iter_object, statement.children[1:])
     else:
         raise Exception('not implemented: iter')
+
+def eval_iter_bool(engine, bool, statements):
+    if not bool.bool_val:
+        return null
+    while True:
+        for statement in statements:
+            eval_statement(engine, statement)
 
 def eval_iter_array(engine, array, statements):
     stack = engine.current_stack()
@@ -115,12 +139,7 @@ def eval_iter_n_times(engine, n, statements):
     return n
 
 def type_cast_to_bool(engine, val):
-    if isinstance(val, Null):
-        return false
-    elif isinstance(val, Bool) and val.bool_val == False:
-        return false
-    else:
-        return true
+    return builtin_bool(engine, val)
 
 def eval_cond(engine, statement):
     statements_count = len(statement.children)
@@ -133,7 +152,7 @@ def eval_cond(engine, statement):
             return eval_command(engine, block)
     return null
 
-def eval_quote(engine, statement):
+def eval_value(engine, statement):
     return eval_expression(engine, statement.children[0])
 
 def eval_begin(engine, statement):
@@ -174,12 +193,8 @@ def eval_payload(engine, expr):
             if len(expr.children) == 0:
                 return val
             else:
-                for getter_ast in expr.children:
-                    getter = eval_expression(engine, getter_ast)
-                    if isinstance(val, Array) and isinstance(getter, Int):
-                        val = val.array_val[getter.int_val]
-                    else:
-                        raise Exception('invalid payload getter.')
+                for index in expr.children:
+                    val = get_value_by_index(engine, val, index)
                 return val
     raise Exception('invalid payload getter.')
 
@@ -194,12 +209,22 @@ def eval_payload_with_index(engine, expr):
             raise Exception('invalid payload getter.')
     return val
 
+def get_value_by_index(engine, var, index_ast):
+    indexer = eval_expression(engine, index_ast)
+    if isinstance(indexer, Str) and isinstance(var, Object):
+        return var.object_val[indexer.str_val]
+    elif isinstance(indexer, Int) and isinstance(var, Array):
+        return var.array_val[indexer.int_val]
+    else:
+        raise Exception('unknown data type')
+
 def eval_variable(engine, expr):
     stack = engine.current_stack()
-    if len(expr.children) == 1:
-        return stack.get(expr.children[0].additional_info)
-    else:
-        raise Exception('xxx') # TODO: support a["key"]["value"]
+    val = stack.get(expr.children[0].additional_info)
+    if len(expr.children) >= 1:
+        for index in expr.children[1:]:
+            val = get_value_by_index(engine, val, index)
+    return val
 
 def eval_float(engine, expr):
     return Float(float(expr.additional_info))
@@ -227,5 +252,8 @@ def eval_object(engine, expr):
     for child in expr.children:
         key = eval_expression(engine, child.children[0])
         value = eval_expression(engine, child.children[1])
-        _object[key] = value
+        if not isinstance(key, Str):
+            raise Exception('unknown data type.')
+        _object[key.str_val] = value
     return Object(_object)
+

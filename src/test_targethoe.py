@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from hoe.engine import Engine
@@ -13,42 +15,42 @@ from hoe.runtime import (Env, Type, Int, Float,
 def engine():
     return Engine()
 
-def test_quote_int(engine):
-    val = eval_source_code(engine, "quote 1")
+def test_value_int(engine):
+    val = eval_source_code(engine, "value 1")
     assert isinstance(val, Int)
     assert val.int_val == 1
 
-def test_quote_float(engine):
-    val = eval_source_code(engine, "quote 1.0")
+def test_value_float(engine):
+    val = eval_source_code(engine, "value 1.0")
     assert isinstance(val, Float)
     assert val.float_val == 1.0
 
-def test_quote_str(engine):
-    val = eval_source_code(engine, 'quote "hello, world"')
+def test_value_str(engine):
+    val = eval_source_code(engine, 'value "hello, world"')
     assert isinstance(val, Str)
     assert val.str_val == "hello, world"
 
-def test_quote_array(engine):
-    val = eval_source_code(engine, 'quote []')
+def test_value_array(engine):
+    val = eval_source_code(engine, 'value []')
     assert isinstance(val, Array)
     assert val.array_val == []
 
-def test_quote_object(engine):
-    val = eval_source_code(engine, 'quote {}')
+def test_value_object(engine):
+    val = eval_source_code(engine, 'value {}')
     assert isinstance(val, Object)
     assert val.object_val == {}
 
-def test_quote_object_with_kv(engine):
-    val = eval_source_code(engine, 'quote {"key": "value"}')
+def test_value_object_with_kv(engine):
+    val = eval_source_code(engine, 'value {"key": "value"}')
     assert isinstance(val, Object)
     items = val.object_val.items()
-    assert items[0][0].str_val == "key"
+    assert items[0][0] == "key"
     assert items[0][1].str_val == "value"
 
-def test_identifier_for_quote(engine):
+def test_identifier_for_value(engine):
     val = eval_source_code(engine, '''
-    a: quote 1
-    quote a
+    a: value 1
+    value a
     ''')
     assert isinstance(val, Int)
     assert val.int_val == 1
@@ -63,7 +65,7 @@ def test_empty_begin_end_statement(engine):
 def test_begin_end_has_one_statement_inside(engine):
     val = eval_source_code(engine, """
         begin
-        quote 1
+        value 1
         end
     """)
     assert isinstance(val, Int)
@@ -72,8 +74,8 @@ def test_begin_end_has_one_statement_inside(engine):
 def test_begin_end_has_multiple_statements(engine):
     val = eval_source_code(engine, """
         begin
-        a: quote 1
-        quote a
+        a: value 1
+        value a
         end
     """)
     assert isinstance(val, Int)
@@ -82,9 +84,9 @@ def test_begin_end_has_multiple_statements(engine):
 def test_identifier_for_begin_end_statement(engine):
     val = eval_source_code(engine, """
         x: begin
-            quote 1
+            value 1
         end
-        quote x
+        value x
     """)
     assert isinstance(val, Int)
     assert val.int_val == 1
@@ -112,9 +114,9 @@ def test_eval_plus_string(engine):
 
 def test_identifier_for_eval_source_code(engine):
     val = eval_source_code(engine, """
-        s0: quote "hello"
-        s1: quote ", "
-        s2: quote "world"
+        s0: value "hello"
+        s1: value ", "
+        s2: value "world"
         eval "+" [s0, s1, s2]
     """)
     assert isinstance(val, Str)
@@ -127,9 +129,9 @@ def test_identifier_for_eval_source_code(engine):
     # assert isinstance(val, Str)
     # assert val.str_val == "hello, world"
 
-def test_define_proc_and_payload(engine):
+def test_define_def_and_payload(engine):
     val = eval_source_code(engine, """
-        proc "+1"
+        def "+1"
             eval "+" [1, $]
         end
 
@@ -138,11 +140,11 @@ def test_define_proc_and_payload(engine):
     assert isinstance(val, Int)
     assert val.int_val == 1
 
-# def test_nested_proc_unsupported(engine):
+# def test_nested_def_unsupported(engine):
     # with pytest.raises(Exception):
         # eval_source_code(engine, """
-            # proc "+1"
-                # proc "+2"
+            # def "+1"
+                # def "+2"
                 # end
             # end
         # """)
@@ -151,10 +153,10 @@ def test_define_proc_and_payload(engine):
 def test_basic_cond(engine):
     val = eval_source_code(engine, """
         cond
-            quote false
-                quote "Never executed."
-            quote true
-                quote "Gotcha."
+            value false
+                value "Never executed."
+            value true
+                value "Gotcha."
         end
     """)
     assert isinstance(val, Str)
@@ -163,10 +165,10 @@ def test_basic_cond(engine):
 def test_cond_int_as_bool(engine):
     val = eval_source_code(engine, """
         cond
-            quote 1
-                quote "Gotcha."
-            quote true
-                quote "Never executed."
+            value 1
+                value "Gotcha."
+            value true
+                value "Never executed."
         end
     """)
     assert isinstance(val, Str)
@@ -175,45 +177,45 @@ def test_cond_int_as_bool(engine):
 def test_identifier_for_cond(engine):
     val = eval_source_code(engine, """
         ret: cond
-            quote true
-                quote "Gotcha."
+            value true
+                value "Gotcha."
         end
-        quote ret
+        value ret
     """)
     assert isinstance(val, Str)
     assert val.str_val == "Gotcha."
 
 def test_iter_int(engine):
     val = eval_source_code(engine, """
-        y: quote 0
+        y: value 0
         x: iter 3
             y: eval "+" [y, x]
         end
-        quote y
+        value y
     """)
     assert isinstance(val, Int)
     assert val.int_val == 3 # 0 + 1 + 2
 
 def test_iter_array(engine):
     val = eval_source_code(engine, """
-        y: quote 0
+        y: value 0
         x: iter [1, 2, 3]
             y: eval "+" [y, x]
         end
-        quote y
+        value y
     """)
     assert isinstance(val, Int)
     assert val.int_val == 6 # 0 + 1 + 2 + 3
 
 def test_fib(engine):
     val = eval_source_code(engine, """
-        proc "fib"
+        def "fib"
             cond
                 eval "=" [$, 0]
-                    quote 0
+                    value 0
                 eval "=" [$, 1]
-                    quote 1
-                quote true
+                    value 1
+                value true
                     begin
                         a: eval "-" [$, 1]
                         b: eval "fib" a
@@ -231,12 +233,12 @@ def test_fib(engine):
 
 def test_pow(engine):
     val = eval_source_code(engine, """
-        proc "**"
-            pow: quote 1
+        def "**"
+            pow: value 1
             iter $[1]
                 pow: eval "*" [pow, $[0]]
             end
-            quote pow
+            value pow
         end
         eval "**" [2, 10]
     """)
@@ -329,3 +331,29 @@ def test_eq(engine):
         eval "=" ["hello", "hello, world"]
     """)
     assert val.bool_val == False
+
+def test_builtin_eval_value(engine):
+    val = eval_source_code(engine, """
+        eval "eval" "value 1"
+    """)
+    assert val.int_val == 1
+
+def test_value_str_with_value_inside(engine):
+    val = eval_source_code(engine, r"""
+        value "\"hello, world\""
+    """)
+    assert val.str_val == r'\"hello, world\"'
+
+def test_payload_object_str_index(engine):
+    val = eval_source_code(engine, """
+        object: value {"key": {"key": "value"}}
+        value object["key"]["key"]
+    """)
+    assert val.str_val == "value"
+
+def test_payload_array_int_index(engine):
+    val = eval_source_code(engine, """
+        array: value [[1, 2, 3]]
+        value array[0][0]
+    """)
+    assert val.int_val == 1

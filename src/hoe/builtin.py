@@ -1,4 +1,5 @@
 
+from rpython.rlib.rpath import rabspath, rjoin
 from hoe.runtime import (Env, Type, Int, Float,
                          Str, Bool, Null, Array,
                          Object,
@@ -8,27 +9,44 @@ def is_builtin(op):
     return op in [
         '+', '-', '*', '/',
         '=', '>', '<', '>=', '<=', '!=',
-        'type',
+        "abs", "all", "any",
+        "bool", 'bin',
+        'import',
+        'type', 'str',
         'io.puts',
     ]
 
-def builtin(op, payload):
-    if op == 'type':
-        return builtin_type(payload)
-    elif op == '+':
-        return builtin_plus(payload)
+def builtin(engine, op, payload):
+    if op == '+':
+        return builtin_plus(engine, payload)
     elif op == '-':
-        return builtin_minus(payload)
+        return builtin_minus(engine, payload)
     elif op == '*':
-        return builtin_mul(payload)
+        return builtin_mul(engine, payload)
     elif op == '/':
-        return builtin_div(payload)
+        return builtin_div(engine, payload)
     elif op == '=':
-        return builtin_eq(payload)
+        return builtin_eq(engine, payload)
+    elif op == 'abs':
+        return builtin_abs(engine, payload)
+    elif op == 'all':
+        return builtin_all(engine, payload)
+    elif op == 'any':
+        return builtin_any(engine, payload)
+    elif op == 'bool':
+        return builtin_bool(engine, payload)
+    elif op == 'bin':
+        return builtin_bin(engine, payload)
+    elif op == 'import':
+        return builtin_import(engine, payload)
+    elif op == 'type':
+        return builtin_type(engine, payload)
     elif op == 'io.puts':
-        return builtin_io_puts(payload)
+        return builtin_io_puts(engine, payload)
+    elif op == 'str':
+        return builtin_str(engine, payload)
 
-def builtin_type(payload):
+def builtin_type(engine, payload):
     if isinstance(payload, Int):
         return Str('int')
     elif isinstance(payload, Float):
@@ -46,17 +64,17 @@ def builtin_type(payload):
     else:
         raise Exception('unknown data type.')
 
-def builtin_plus(payload):
+def builtin_plus(engine, payload):
     if not isinstance(payload, Array):
         raise Exception('unknown data type')
     if isinstance(payload.array_val[0], Float) or isinstance(payload.array_val[0], Int):
-        return builtin_plus_number(payload)
+        return builtin_plus_number(engine, payload)
     elif isinstance(payload.array_val[0], Str):
-        return builtin_plus_string(payload)
+        return builtin_plus_string(engine, payload)
     else:
         raise Exception('unknown element type')
 
-def builtin_plus_number(payload):
+def builtin_plus_number(engine, payload):
     i = 0
     f = 0.0
     has_float = False
@@ -73,11 +91,11 @@ def builtin_plus_number(payload):
     else:
         return Int(i)
 
-def builtin_plus_string(payload):
+def builtin_plus_string(engine, payload):
     str_array = [x.str_val for x in payload.array_val]
     return Str(''.join(str_array))
 
-def builtin_minus(payload):
+def builtin_minus(engine, payload):
     if not isinstance(payload, Array):
         raise Exception('unknown parameter')
     if len(payload.array_val) == 0:
@@ -104,7 +122,7 @@ def builtin_minus_atom(left, right):
     else:
         raise Exception('unknown data type')
 
-def builtin_mul(payload):
+def builtin_mul(engine, payload):
     if not isinstance(payload, Array):
         raise Exception('unknown parameter')
     if len(payload.array_val) == 0:
@@ -131,7 +149,7 @@ def builtin_mul_atom(left, right):
     else:
         raise Exception('unknown data type')
 
-def builtin_div(payload):
+def builtin_div(engine, payload):
     if not isinstance(payload, Array):
         raise Exception('unknown parameter')
     if len(payload.array_val) == 0:
@@ -164,7 +182,7 @@ def builtin_div_atom(left, right):
 
 
 
-def builtin_eq(payload):
+def builtin_eq(engine, payload):
     if not isinstance(payload, Array):
         raise Exception('unknown parameter')
     prev = None
@@ -204,5 +222,72 @@ def builtin_eq_atom(left, right):
     else:
         return false
 
-def builtin_io_puts(payload):
+def builtin_io_puts(engine, payload):
     print payload.__str__()
+
+def builtin_str(engine, payload):
+    return Str(payload.__str__())
+
+def builtin_abs(engine, payload):
+    if isinstance(payload, Int):
+        return Int(0-payload.int_val)
+    elif isinstance(payload, Float):
+        return Float(0-payload.float_val)
+    else:
+        raise Exception('unknown data type.')
+
+def builtin_all(engine, payload):
+    if not isinstance(payload, Array):
+        raise Exception('unknown data type.')
+    for el in payload.array_val:
+        if not builtin_bool(engine, el).bool_val:
+            return false
+    return true
+
+def builtin_any(engine, payload):
+    if not isinstance(payload, Array):
+        raise Exception('unknown data type.')
+    for el in payload.array_val:
+        if builtin_bool(engine, el).bool_val:
+            return true
+    return false
+
+def builtin_bool(engine, payload):
+    if isinstance(payload, Null):
+        return false
+    elif isinstance(payload, Bool) and payload.bool_val == False:
+        return false
+    else:
+        return true
+
+def builtin_bin(engine, payload):
+    if not isinstance(payload, Int):
+        raise Exception('unknown data type.')
+    raise Exception('not supported yet.')
+    #return Str(bin(payload.int_val))
+
+
+def _dirname(path):
+    start = len(path) - 1
+    while start > 0:
+        if path[start] == '/':
+            break
+        start -= 1
+    if start > 0:
+        return path[0:start]
+    else:
+        raise Exception('wrong path')
+
+def builtin_import(engine, payload):
+    if not isinstance(payload, Str):
+        raise Exception('unknown data type.')
+    stack = engine.current_stack()
+    executable_path = rabspath(engine.executable)
+    pkg = rjoin(_dirname(_dirname(executable_path)), 'pkg')
+    path = rjoin(pkg, '%s.ho' % payload.str_val)
+    with open(path) as f:
+        env = engine.run_module_code(f.read())
+        stack = engine.current_stack()
+        stack.namespace.update(env.namespace)
+        stack.defs.update(env.defs)
+    return null

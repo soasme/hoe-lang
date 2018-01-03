@@ -1,0 +1,8 @@
+ascii_letters: value "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+ascii_lowercase: value "abcdefghijklmnopqrstuvwxyz"
+ascii_uppercase: value "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+digits: value "0123456789"
+hexdigits: value "0123456789abcdefABCDEF"
+octdigits: value "01234567"
+punctuation: value "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+whitespace: value "\t\n\r "

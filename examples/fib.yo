@@ -1,0 +1,19 @@
+def "fib"
+    cond
+        eval "=" [$, 0]
+            value 0
+        eval "=" [$, 1]
+            value 1
+        value true
+            begin
+                a: eval "-" [$, 1]
+                b: eval "fib" a
+                c: eval "-" [$, 2]
+                d: eval "fib" c
+                eval "+" [b, d]
+            end
+    end
+end
+
+fib: eval "fib" 10
+eval "io.puts" fib

@@ -40,7 +40,7 @@ class Object(Type):
     def __init__(self, object_val):
         self.object_val = object_val
     def __str__(self):
-        return '{%s}' % (', '.join(['%s: %s' % (k.__str__(), v.__str__()) for k, v in self.object_val.items()]))
+        return '{%s}' % (', '.join(['%s: %s' % (k, v.__str__()) for k, v in self.object_val.items()]))
 
 null = Null()
 true = Bool(True)
@@ -50,7 +50,7 @@ class Env(object):
     def __init__(self):
         self.identifier = '^'
         self.namespace = {}
-        self.procs = {}
+        self.defs = {}
     def has(self, key):
         return key in self.namespace
     def get(self, key):
@@ -67,9 +67,9 @@ class Env(object):
         self.identifier = '^'
     def present(self):
         return self.get(self.identifier) if self.has(self.identifier) else null
-    def define_proc(self, proc_name, statements):
-        self.procs[proc_name] = statements
-    def has_proc(self, proc_name):
-        return proc_name in self.procs
-    def get_proc(self, proc_name):
-        return self.procs[proc_name]
+    def define_def(self, def_name, statements):
+        self.defs[def_name] = statements
+    def has_def(self, def_name):
+        return def_name in self.defs
+    def get_def(self, def_name):
+        return self.defs[def_name]

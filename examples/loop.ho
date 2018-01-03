@@ -1,0 +1,6 @@
+a: value 1
+
+iter true
+    a: eval "+" [a, 1]
+    eval "io.puts" a
+end

@@ -6,37 +6,32 @@ from rpython.rlib.parsing.deterministic import LexerError
 
 EBNF = """
 IDENTIFIER: "[a-zA-Z_][a-zA-Z0-9_]*";
-STRING: "\\"[^\\\\"]*\\"";
+STRING: "\\\"([^\\"\\\\]|\\\\.)*\\\"";
 NUMBER: "\-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][\+\-]?[0-9]+)?";
 IGNORE: " |\n";
 
 main: >statement+<;
 
-command: <quote> | <send> | <recv> | <eval> | <proc> | <begin> | <patch> | <cond> | <iter>;
+command: <value> | <eval> | <def> | <begin> | <cond> | <iter>;
 statement: (IDENTIFIER [":"])? command;
 
-quote: ["quote"] value;
-eval: ["eval"] STRING value?;
+value: ["value"] expression;
+eval: ["eval"] STRING expression?;
 
-proc: ["proc"] STRING >statement*< ["end"];
+def: ["def"] STRING >statement*< ["end"];
 begin: ["begin"] >statement*< ["end"];
 cond: ["cond"] >command*< ["end"];
-iter: ["iter"] value >statement*< ["end"];
+iter: ["iter"] expression >statement*< ["end"];
 
-send: ["send"] STRING value;
-recv: ["recv"] STRING;
-patch: ["patch"] store value;
-
-value: <STRING> | <NUMBER> | <object> | <array> | <"true"> | <"false"> | <"null"> | <store> | <payload> | <variable>;
+expression: <STRING> | <NUMBER> | <"true"> | <"false"> | <"null"> | <payload> | <variable> | <object> | <array>;
 
 variable: IDENTIFIER index*;
 payload: ["$"] index*;
-store: ["$$"] index*;
-index: ["["] <value> ["]"];
+index: ["["] <expression> ["]"];
 
 object: ["{"] (entry [","])* entry* ["}"];
-array: ["["] (value [","])* value* ["]"];
-entry: value [":"] value;
+array: ["["] (expression [","])* expression* ["]"];
+entry: expression [":"] expression;
 """
 
 regexes, rules, _to_ast = parse_ebnf(EBNF)
