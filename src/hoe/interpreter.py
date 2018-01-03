@@ -107,12 +107,25 @@ def eval_iter(engine, statement):
         return eval_iter_n_times(engine, iter_object, statement.children[1:])
     elif isinstance(iter_object, Array):
         return eval_iter_array(engine, iter_object, statement.children[1:])
+    elif isinstance(iter_object, Str):
+        return eval_iter_str_chars(engine, iter_object, statement.children[1:])
     else:
         raise Exception('not implemented: iter')
 
+def eval_iter_str_chars(engine, string, statements):
+    if not string.str_val:
+        return string
+    stack = engine.current_stack()
+    iter_obj_identifier = stack.identifier
+    for char in string.str_val:
+        stack.set(iter_obj_identifier, Str(char))
+        for statement in statements:
+            eval_statement(engine, statement)
+    return string
+
 def eval_iter_bool(engine, bool, statements):
     if not bool.bool_val:
-        return null
+        return false
     while True:
         for statement in statements:
             eval_statement(engine, statement)

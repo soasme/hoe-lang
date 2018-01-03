@@ -1,0 +1,6 @@
+def "+1"
+  eval "+" [$, 1]
+end
+
+x: eval "map" ["+1", [1, 2, 3]]
+eval "io.puts" x

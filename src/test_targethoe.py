@@ -13,7 +13,7 @@ from hoe.runtime import (Env, Type, Int, Float,
 
 @pytest.fixture
 def engine():
-    return Engine()
+    return Engine('./src/targethoe.py')
 
 def test_value_int(engine):
     val = eval_source_code(engine, "value 1")
@@ -196,6 +196,17 @@ def test_iter_int(engine):
     assert isinstance(val, Int)
     assert val.int_val == 3 # 0 + 1 + 2
 
+def test_iter_str(engine):
+    val = eval_source_code(engine, """
+        y: value ""
+        x: iter "abc"
+            y: eval "+" [y, x]
+        end
+        value y
+    """)
+    assert isinstance(val, Str)
+    assert val.str_val == "abc" # "" + "a" + "b" + "c"
+
 def test_iter_array(engine):
     val = eval_source_code(engine, """
         y: value 0
@@ -357,3 +368,24 @@ def test_payload_array_int_index(engine):
         value array[0][0]
     """)
     assert val.int_val == 1
+
+def test_builtin_len(engine):
+    val = eval_source_code(engine, """
+        arr0_len: eval "len" []
+        arr1_len: eval "len" [0]
+        str0_len: eval "len" ""
+        str1_len: eval "len" "a"
+        obj0_len: eval "len" {}
+        obj1_len: eval "len" {"key": "value"}
+        value [arr0_len, arr1_len, str0_len, str1_len, obj0_len, obj1_len]
+    """)
+    lens = [el.int_val for el in val.array_val]
+    assert lens == [0, 1, 0, 1, 0, 1]
+
+def test_builtin_map(engine):
+    val = eval_source_code(engine, """
+        def "+1" eval "+" [$, 1] end
+        eval "map" ["+1", [1, 2, 3]]
+    """)
+    vals = [el.int_val for el in val.array_val]
+    assert vals == [2, 3, 4]

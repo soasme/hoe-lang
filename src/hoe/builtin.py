@@ -11,7 +11,8 @@ def is_builtin(op):
         '=', '>', '<', '>=', '<=', '!=',
         "abs", "all", "any",
         "bool", 'bin',
-        'import',
+        'len', 'import',
+        "map",
         'type', 'str',
         'io.puts',
     ]
@@ -45,6 +46,10 @@ def builtin(engine, op, payload):
         return builtin_io_puts(engine, payload)
     elif op == 'str':
         return builtin_str(engine, payload)
+    elif op == 'len':
+        return builtin_len(engine, payload)
+    elif op == 'map':
+        return builtin_map(engine, payload)
 
 def builtin_type(engine, payload):
     if isinstance(payload, Int):
@@ -291,3 +296,38 @@ def builtin_import(engine, payload):
         stack.namespace.update(env.namespace)
         stack.defs.update(env.defs)
     return null
+
+def builtin_cmp(engine, payload):
+    if isinstance(payload, Array):
+        raise Exception('unknown data type.')
+
+def builtin_len(engine, payload):
+    if isinstance(payload, Str):
+        return Int(len(payload.str_val))
+    elif isinstance(payload, Array):
+        return Int(len(payload.array_val))
+    elif isinstance(payload, Object):
+        return Int(len(payload.object_val))
+    else:
+        raise Exception('unknown data type.')
+
+def builtin_map(engine, payload):
+    if not isinstance(payload, Array):
+        raise Exception('unknown data type.')
+    if len(payload.array_val) != 2:
+        raise Exception('unknown data type.')
+    func_name = payload.array_val[0]
+    iterable = payload.array_val[1]
+    if not isinstance(func_name, Str):
+        raise Exception('unknown data type.')
+    if not isinstance(iterable, Array):
+        raise Exception('unknown data type.')
+    new_array_val = []
+    for el in iterable.array_val:
+        engine.stack.append(Env())
+        macro = """
+            eval %s %s
+        """ % (func_name.__str__(), el.__str__())
+        new_val = engine.run_macro_code(macro)
+        new_array_val.append(new_val)
+    return Array(new_array_val)

@@ -6,3 +6,11 @@ hexdigits: value "0123456789abcdefABCDEF"
 octdigits: value "01234567"
 punctuation: value "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 whitespace: value "\t\n\r "
+
+def "str.upper"
+  words: value []
+  word: iter $
+    cond
+    end
+  end
+end

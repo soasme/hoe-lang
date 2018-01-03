@@ -17,6 +17,9 @@ class Engine(object):
     def current_stack(self):
         return self.stack[len(self.stack) - 1]
 
+    def run_macro_code(self, source_code):
+        return eval_source_code(self, source_code)
+
     def run_module_code(self, source_code):
         env = eval_module(self, source_code)
         return env
