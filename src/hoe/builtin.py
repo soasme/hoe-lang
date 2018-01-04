@@ -7,12 +7,12 @@ from hoe.runtime import (Env, Type, Int, Float,
 
 def is_builtin(op):
     return op in [
-        '+', '-', '*', '/',
+        '+', '-', '*', '/', '%',
         '=', '>', '<', '>=', '<=', '!=',
         "abs", "all", "any",
         "bool", 'bin',
         'len', 'import',
-        "map",
+        "map", "filter",
         'type', 'str',
         'io.puts',
     ]
@@ -50,6 +50,8 @@ def builtin(engine, op, payload):
         return builtin_len(engine, payload)
     elif op == 'map':
         return builtin_map(engine, payload)
+    elif op == 'filter':
+        return builtin_filter(engine, payload)
 
 def builtin_type(engine, payload):
     if isinstance(payload, Int):
@@ -168,6 +170,7 @@ def builtin_div(engine, payload):
             val = builtin_div_atom(payload.array_val[i-1], payload.array_val[i])
             i += 1
         return val
+
 
 def builtin_div_atom(left, right):
     if isinstance(right, Int) and right.int_val == 0:
@@ -330,4 +333,26 @@ def builtin_map(engine, payload):
         """ % (func_name.__str__(), el.__str__())
         new_val = engine.run_macro_code(macro)
         new_array_val.append(new_val)
+    return Array(new_array_val)
+
+def builtin_filter(engine, payload):
+    if not isinstance(payload, Array):
+        raise Exception('unknown data type.')
+    if len(payload.array_val) != 2:
+        raise Exception('unknown data type.')
+    func_name = payload.array_val[0]
+    iterable = payload.array_val[1]
+    if not isinstance(func_name, Str):
+        raise Exception('unknown data type.')
+    if not isinstance(iterable, Array):
+        raise Exception('unknown data type.')
+    new_array_val = []
+    for el in iterable.array_val:
+        engine.stack.append(Env())
+        macro = """
+            eval %s %s
+        """ % (func_name.__str__(), el.__str__())
+        new_val = engine.run_macro_code(macro)
+        if builtin_bool(engine, new_val).bool_val:
+            new_array_val.append(el)
     return Array(new_array_val)

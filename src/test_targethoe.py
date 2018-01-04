@@ -389,3 +389,11 @@ def test_builtin_map(engine):
     """)
     vals = [el.int_val for el in val.array_val]
     assert vals == [2, 3, 4]
+
+def test_builtin_filter(engine):
+    val = eval_source_code(engine, """
+        def "0?" eval "=" [$, 0] end
+        eval "filter" ["0?", [0, 1, 0, 1]]
+    """)
+    vals = [el.int_val for el in val.array_val]
+    assert vals == [0, 0]
