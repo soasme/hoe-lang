@@ -131,7 +131,7 @@ def test_identifier_for_eval_source_code(engine):
 
 def test_define_def_and_payload(engine):
     val = eval_source_code(engine, """
-        def "+1"
+        proc "+1"
             eval "+" [1, $]
         end
 
@@ -220,7 +220,7 @@ def test_iter_array(engine):
 
 def test_fib(engine):
     val = eval_source_code(engine, """
-        def "fib"
+        proc "fib"
             cond
                 eval "=" [$, 0]
                     value 0
@@ -244,7 +244,7 @@ def test_fib(engine):
 
 def test_pow(engine):
     val = eval_source_code(engine, """
-        def "**"
+        proc "**"
             pow: value 1
             iter $[1]
                 pow: eval "*" [pow, $[0]]
@@ -384,7 +384,7 @@ def test_builtin_len(engine):
 
 def test_builtin_map(engine):
     val = eval_source_code(engine, """
-        def "+1" eval "+" [$, 1] end
+        proc "+1" eval "+" [$, 1] end
         eval "map" ["+1", [1, 2, 3]]
     """)
     vals = [el.int_val for el in val.array_val]
@@ -392,7 +392,7 @@ def test_builtin_map(engine):
 
 def test_builtin_filter(engine):
     val = eval_source_code(engine, """
-        def "0?" eval "=" [$, 0] end
+        proc "0?" eval "=" [$, 0] end
         eval "filter" ["0?", [0, 1, 0, 1]]
     """)
     vals = [el.int_val for el in val.array_val]

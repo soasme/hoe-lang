@@ -12,13 +12,13 @@ IGNORE: " |\n";
 
 main: >statement+<;
 
-command: <value> | <eval> | <def> | <begin> | <cond> | <iter>;
+command: <value> | <eval> | <proc> | <begin> | <cond> | <iter>;
 statement: (IDENTIFIER [":"])? command;
 
 value: ["value"] expression;
 eval: ["eval"] STRING expression?;
 
-def: ["def"] STRING >statement*< ["end"];
+proc: ["proc"] STRING >statement*< ["end"];
 begin: ["begin"] >statement*< ["end"];
 cond: ["cond"] >command*< ["end"];
 iter: ["iter"] expression >statement*< ["end"];

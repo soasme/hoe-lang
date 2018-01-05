@@ -67,8 +67,8 @@ def eval_command(engine, statement):
         return eval_cond(engine, statement)
     elif statement.symbol == 'iter':
         return eval_iter(engine, statement)
-    elif statement.symbol == 'def':
-        return eval_def(engine, statement)
+    elif statement.symbol == 'proc':
+        return eval_proc(engine, statement)
     else:
         raise Exception('unknown command %s' % statement)
 
@@ -84,8 +84,8 @@ def eval_eval(engine, statement):
         return builtin(engine, func_name, payload)
     statements = None
     for env in reversed(engine.stack):
-        if env.has_def(func_name):
-            statements = env.get_def(func_name)
+        if env.has_proc(func_name):
+            statements = env.get_proc(func_name)
             break
     if not statements:
         raise Exception('unknown def: %s' % func_name)
@@ -94,9 +94,9 @@ def eval_eval(engine, statement):
     engine.stack.append(env)
     return eval_statements(engine, statements)
 
-def eval_def(engine, statement):
+def eval_proc(engine, statement):
     def_name = extract_STRING(statement.children[0])
-    engine.current_stack().define_def(def_name, statement.children[1:])
+    engine.current_stack().define_proc(def_name, statement.children[1:])
     return null
 
 def eval_iter(engine, statement):

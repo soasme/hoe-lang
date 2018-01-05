@@ -67,9 +67,9 @@ class Env(object):
         self.identifier = '^'
     def present(self):
         return self.get(self.identifier) if self.has(self.identifier) else null
-    def define_def(self, def_name, statements):
+    def define_proc(self, def_name, statements):
         self.defs[def_name] = statements
-    def has_def(self, def_name):
+    def has_proc(self, def_name):
         return def_name in self.defs
-    def get_def(self, def_name):
+    def get_proc(self, def_name):
         return self.defs[def_name]

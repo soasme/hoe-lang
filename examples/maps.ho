@@ -4,3 +4,4 @@ end
 
 x: eval "map" ["+1", [1, 2, 3]]
 eval "io.puts" x
+eval "map" ["io.puts" [1, 2, 3]]

@@ -31,10 +31,10 @@ class Engine(object):
                     eval_source_code(self, f.read())
                     return 0
                 except Exception as e:
-                    print e
+                    print str(e)
                     return 1
         except KeyboardInterrupt as e:
             return 1
         except Exception as e:
-            print e
+            print str(e)
             return 1

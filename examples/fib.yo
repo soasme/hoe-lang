@@ -1,19 +1,19 @@
-def "fib"
+proc "fib" {"n": "int"}
     cond
-        eval "=" [$, 0]
+        eval "=" [n, 0]
             value 0
-        eval "=" [$, 1]
+        eval "=" [n, 1]
             value 1
         value true
             begin
-                a: eval "-" [$, 1]
+                a: eval "-" [n, 1]
                 b: eval "fib" a
-                c: eval "-" [$, 2]
+                c: eval "-" [n, 2]
                 d: eval "fib" c
                 eval "+" [b, d]
             end
     end
 end
 
-fib: eval "fib" 10
+fib: eval "fib" 30
 eval "io.puts" fib
