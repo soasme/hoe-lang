@@ -7,6 +7,7 @@ from hoe.runtime import (Env, Type, Int, Float,
                          Object,
                          null, true, false)
 
+
 def eval(engine, source_code):
     return eval_source_code(engine, source_code)
 
@@ -77,9 +78,6 @@ def eval_eval(engine, statement):
     func_name = extract_STRING(def_STRING)
     payload = eval_expression(engine, statement.children[1]) \
             if len(statement.children) == 2 else null
-    if func_name == 'eval' and isinstance(payload, Str):
-        engine.stack.append(Env())
-        return eval_source_code(engine, payload.str_val)
     if is_builtin(func_name):
         return builtin(engine, func_name, payload)
     statements = None

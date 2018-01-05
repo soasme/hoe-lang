@@ -1,0 +1,4 @@
+eval "import" "socket"
+
+hostname: eval "gethostname"
+eval "io.puts" hostname

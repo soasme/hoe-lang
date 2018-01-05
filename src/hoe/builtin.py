@@ -4,54 +4,7 @@ from hoe.runtime import (Env, Type, Int, Float,
                          Str, Bool, Null, Array,
                          Object,
                          null, true, false)
-
-def is_builtin(op):
-    return op in [
-        '+', '-', '*', '/', '%',
-        '=', '>', '<', '>=', '<=', '!=',
-        "abs", "all", "any",
-        "bool", 'bin',
-        'len', 'import',
-        "map", "filter",
-        'type', 'str',
-        'io.puts',
-    ]
-
-def builtin(engine, op, payload):
-    if op == '+':
-        return builtin_plus(engine, payload)
-    elif op == '-':
-        return builtin_minus(engine, payload)
-    elif op == '*':
-        return builtin_mul(engine, payload)
-    elif op == '/':
-        return builtin_div(engine, payload)
-    elif op == '=':
-        return builtin_eq(engine, payload)
-    elif op == 'abs':
-        return builtin_abs(engine, payload)
-    elif op == 'all':
-        return builtin_all(engine, payload)
-    elif op == 'any':
-        return builtin_any(engine, payload)
-    elif op == 'bool':
-        return builtin_bool(engine, payload)
-    elif op == 'bin':
-        return builtin_bin(engine, payload)
-    elif op == 'import':
-        return builtin_import(engine, payload)
-    elif op == 'type':
-        return builtin_type(engine, payload)
-    elif op == 'io.puts':
-        return builtin_io_puts(engine, payload)
-    elif op == 'str':
-        return builtin_str(engine, payload)
-    elif op == 'len':
-        return builtin_len(engine, payload)
-    elif op == 'map':
-        return builtin_map(engine, payload)
-    elif op == 'filter':
-        return builtin_filter(engine, payload)
+from hoe.lib import socket
 
 def builtin_type(engine, payload):
     if isinstance(payload, Int):
@@ -356,3 +309,40 @@ def builtin_filter(engine, payload):
         if builtin_bool(engine, new_val).bool_val:
             new_array_val.append(el)
     return Array(new_array_val)
+
+def builtin_eval(engine, payload):
+    if not isinstance(payload, Str):
+        raise Exception('unknown data type')
+    engine.stack.append(Env())
+    return engine.run_macro_code(payload.str_val)
+
+def builtin_socket_gethostname(engine, payload):
+    return socket.hoe_gethostname()
+
+BUILTINS = {
+    '+': builtin_plus,
+    '-': builtin_minus,
+    '*': builtin_mul,
+    '/': builtin_div,
+    '=': builtin_eq,
+    'abs': builtin_abs,
+    'all': builtin_all,
+    'any': builtin_any,
+    'bool': builtin_bool,
+    'bin': builtin_bin,
+    'eval': builtin_eval,
+    'filter': builtin_filter,
+    'len': builtin_len,
+    'map': builtin_map,
+    'import': builtin_import,
+    'io.puts': builtin_io_puts,
+    'str': builtin_str,
+    'socket._gethostname': builtin_socket_gethostname,
+    'type': builtin_type,
+}
+
+def is_builtin(op):
+    return op in BUILTINS
+
+def builtin(engine, op, payload):
+    return BUILTINS[op](engine, payload)

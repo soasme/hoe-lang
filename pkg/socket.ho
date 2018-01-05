@@ -1,0 +1,3 @@
+proc "gethostname"
+    eval "socket._gethostname"
+end
